@@ -45,6 +45,13 @@ async def llm_default_response(messages):
 async def stream_llm_response(messages, message_id, websocket):
     response = await llm_default_response(messages)
 
+    message = {
+        'id': message_id,
+        'message': '',
+        'special': 'create',
+    }
+    await manager.send_message(json.dumps(message), websocket)
+    
     async for line in response:
         text = line.choices[0].delta.content
         try:
