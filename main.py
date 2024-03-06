@@ -80,9 +80,14 @@ async def stream_llm_response(messages, message_id, websocket):
     
     await manager.send_message(json.dumps(message), websocket)
 
-async def llm_chat_title(messages, message_id, websocket):
-    messages.insert(0, {'role': 'system', 'content': 'Please generate a short title for a chat given these messages for an AI chat application. Avoid using quotations and keep the title relevant to the messages provided.'})
-
+async def llm_chat_title(message, message_id, websocket):
+    messages = [
+        {'role': 'system', 'content': 'Please identify the topic of the user input to  be used as a title for a chat application.'},
+        {'role': 'user', 'content': 'How do you convert degrees to radians?'},
+        {'role': 'assistant', 'content': 'Degree to Radian Conversion'},
+        {'role': 'user', 'content': message}
+    ]
+    
     try:
         result = await llm.chat.completions.create(
             model = 'gpt-3.5-turbo-1106',
@@ -173,7 +178,7 @@ async def websocket_endpoint(websocket: WebSocket):
             manager.active_connections[websocket] = time()
 
             if (request_type == 'title'):
-                asyncio.create_task(llm_chat_title(messages, message_id, websocket))
+                asyncio.create_task(llm_chat_title(messages[0]['content'], message_id, websocket))
             elif (request_type == 'chat'):
                 asyncio.create_task(stream_llm_response(messages, message_id, websocket))
     except WebSocketDisconnect:
