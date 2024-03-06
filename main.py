@@ -81,7 +81,7 @@ async def stream_llm_response(messages, message_id, websocket):
     await manager.send_message(json.dumps(message), websocket)
 
 async def llm_chat_title(messages, message_id, websocket):
-    messages.insert(0, {'role': 'system', 'content': 'Please generate a short title for a chat given these messages for an AI chat application.'})
+    messages.insert(0, {'role': 'system', 'content': 'Please generate a short title for a chat given these messages for an AI chat application. Avoid using quotations and keep the title relevant to the messages provided.'})
 
     try:
         result = await llm.chat.completions.create(
