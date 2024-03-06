@@ -39,12 +39,21 @@ async def llm_default_response(messages):
             stream=True,
         )
         return result
-    except:
+    except Exception as e:
+        print(e)
         return None
 
 async def stream_llm_response(messages, message_id, websocket):
     response = await llm_default_response(messages)
-    
+
+    message = {
+        'id': message_id,
+        'message': '',
+        'special': 'create',
+    }
+
+    await manager.send_message(json.dumps(message), websocket)
+
     async for line in response:
         text = line.choices[0].delta.content
         try:
@@ -70,6 +79,28 @@ async def stream_llm_response(messages, message_id, websocket):
     }
     
     await manager.send_message(json.dumps(message), websocket)
+
+async def llm_chat_title(messages, message_id, websocket):
+    messages.insert(0, {'role': 'system', 'content': 'Please generate a short title for a chat given these messages for an AI chat application.'})
+
+    try:
+        result = await llm.chat.completions.create(
+            model = 'gpt-3.5-turbo-1106',
+            messages=messages,
+            stream=False,
+        )
+
+        message = {
+            'id': message_id,
+            'message': result.choices[0].message.content,
+            'special': 'title',
+        }
+        
+        
+        await manager.send_message(json.dumps(message), websocket)
+    except Exception as e:
+        print(e)
+        return None
 
 @app.get('/')
 async def root():
@@ -133,13 +164,18 @@ async def websocket_endpoint(websocket: WebSocket):
     try:
         while True:
             data = await websocket.receive_text()
+            data_json = json.loads(data)
+
+            request_type = data_json['type']
+            messages = data_json['data']
 
             message_id = int(time() * random())
-            messages = ast.literal_eval(data)
-
             manager.active_connections[websocket] = time()
 
-            asyncio.create_task(stream_llm_response(messages, message_id, websocket))
+            if (request_type == 'title'):
+                asyncio.create_task(llm_chat_title(messages, message_id, websocket))
+            elif (request_type == 'chat'):
+                asyncio.create_task(stream_llm_response(messages, message_id, websocket))
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
