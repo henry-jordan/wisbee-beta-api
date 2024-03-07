@@ -46,6 +46,15 @@ async def llm_default_response(messages):
 async def stream_llm_response(messages, message_id, websocket):
     response = await llm_default_response(messages)
 
+    if response == None:
+        message = {
+            'id': message_id,
+            'message': '',
+            'special': 'failure',
+        }
+
+        await manager.send_message(json.dumps(message), websocket)
+    
     message = {
         'id': message_id,
         'message': '',
